@@ -192,40 +192,6 @@ SleepAway/
 
 ---
 
-## Project Timeline
-
-| Phase | Period | Status |
-|---|---|---|
-| Research & planning | March–April 2025 | ✅ Complete |
-| Component selection & procurement | April–May 2025 | ✅ Complete |
-| AI software development | May–June 2025 | ✅ Complete |
-| Hardware bring-up | June–July 2025 | 🔄 In progress |
-| PCB design (KiCad) | July–August 2025 | 🔄 In progress |
-| Vehicle testing | September 2025 | ⏳ Upcoming |
-| SECTE Innovation Exhibition | October 2025 | ⏳ Upcoming |
-
----
-
-## Team
-
-| Name | Degree | Contributions |
-|---|---|---|
-| Rafael Zoric | Mechatronics Engineering (Hons) | Hardware bring-up, AI pipeline, CAD, PCB |
-| Thomas Castan | Electrical Engineering | Embedded systems, GPS, wireless comms, backend |
-| Michael Williams | Mechatronics Engineering | CAD, prototyping, circuit design, C/C++ |
-| Ieuan King | Electrical Engineering | Microcontroller programming, PCB design |
-| Abrar Tahmeed | Computer Engineering | Python/MATLAB, AI model training, system testing |
-
----
-
-## Ethical & Sustainability Considerations
-
-- All image processing is **local** — no data sent to cloud
-- Camera frames are **discarded immediately** after inference
-- USB/cigarette lighter power — **no disposable batteries** in dashboard module
-- **Recyclable PLA** 3D printed enclosures
-- **Modular design** — individual components replaceable without discarding whole unit
-- Terms of use clearly state device **enhances but does not replace** safe driving
 
 ---
 
