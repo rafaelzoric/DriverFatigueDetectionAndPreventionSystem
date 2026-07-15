@@ -1,0 +1,247 @@
+# SleepAway — Driver Fatigue Detection & Prevention System
+
+> A retrofittable, low-cost driver fatigue detection system for older vehicles.  
+> University of Wollongong — Engineering Capstone Project 2025
+
+---
+
+## Overview
+
+Driver fatigue is responsible for an estimated **20–30% of fatal and serious road crashes** in Australia (Australian Automobile Association). The average passenger vehicle on Australian roads is 11.4 years old, meaning the majority of drivers have no built-in fatigue detection system.
+
+SleepAway is a two-module device that retrofits fatigue detection into any vehicle cheaply and easily — no installation required beyond a dashboard mount and USB power.
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────┐     BLE 5       ┌──────────────────────────┐
+│         Dashboard Module            │ ◄────────────►  │     Headband Module      │
+│                                     │                 │                          │
+│  Raspberry Pi 5 (2GB)               │                 │  ESP32-C3 Mini           │
+│  XC9021 IR Camera (OV5647)          │                 │  MPU6050 IMU             │
+│  Adafruit GPS Breakout v3           │                 │  Vibration motor         │
+│  Grove Vision AI V2 (YOLO)          │                 │  1100mAh LiPo battery    │
+│  3W LED + Gravity Speaker           │                 │  Makerverse USB-C charger│
+└─────────────────────────────────────┘                 └──────────────────────────┘
+```
+
+---
+
+## Detection Methods
+
+### Vision AI — Dashboard Module
+- **Primary:** MediaPipe Face Mesh (468 3D landmarks) with Eye Aspect Ratio (EAR) calculation
+- **Secondary:** YOLOv8n on Grove Vision AI V2 Ethos-U55 NPU (experimental)
+- **Fallback:** OpenCV Haar cascade + dlib 68 landmark detection
+
+### IMU — Headband Module
+- MPU6050 accelerometer + gyroscope
+- Pitch angle calculation for head nod detection
+- Digital Low Pass Filter (DLPF) at 10Hz — configured in firmware, no hardware filter needed
+
+### GPS — Dashboard Module
+- Speed variance monitoring over a rolling time window
+- Erratic speed changes contribute to fatigue score
+
+### Sensor Fusion
+All three sources feed into a weighted fatigue score:
+
+```
+Score = F_camera × W_c  +  F_imu × W_i  +  F_gps × W_g
+
+where W_c + W_i + W_g = 1  and  0 < F < 100
+```
+
+Camera is weighted heaviest, GPS lightest.
+
+---
+
+## Alert System
+
+When the combined fatigue score exceeds the threshold:
+- 🔴 **3W 200 lumen LED** flashes (GPIO17 via 2N2222 transistor)
+- 🔊 **Speaker** plays a rising tone alert (GPIO18)
+- 📳 **Vibration motor** pulses against the driver's head (ESP32 GPIO4)
+
+---
+
+## Hardware
+
+### Dashboard Module — Bill of Materials
+
+| Component | Cost (AUD) | Source |
+|---|---|---|
+| Raspberry Pi 5 Model B 2GB | $104.62 | Core Electronics |
+| XC9021 IR Night Vision Camera | Borrowed | ECTE Store (Jaycar XC9021) |
+| Adafruit Ultimate GPS Breakout v3 | Borrowed | ECTE Store |
+| Grove Vision AI Module V2 | $34.70 | Core Electronics |
+| Gravity Digital Speaker Module | $9.75 | Little Bird Electronics |
+| 3W 200 Lumen LED Module | $3.05 | Little Bird Electronics |
+| Raspberry Pi Active Cooler | $8.95 | Little Bird Electronics |
+
+### Headband Module — Bill of Materials
+
+| Component | Cost (AUD) | Source |
+|---|---|---|
+| ESP32-C3 Mini Dev Board (with headers) | $7.60 | Core Electronics |
+| MPU6050 IMU | $6.11 | Little Bird Electronics |
+| Mini Vibration Motor (10×2.7mm) | $1.68 | Little Bird Electronics |
+| Polymer LiPo Battery 3.7V 1100mAh | $8.65 | Core Electronics |
+| Makerverse USB-C LiPo Charger | $6.85 | Core Electronics |
+
+**Total expenditure: $202.38** (incl. $9.42 shipping) — 57.8% of $350 budget
+
+---
+
+## Wiring
+
+### Dashboard Module — Key Connections
+
+| Component | Pi 5 Pin | Protocol |
+|---|---|---|
+| XC9021 IR Camera | CSI port (22-pin) | MIPI CSI-2 |
+| Grove Vision AI V2 | GPIO2/3 | I2C |
+| GPS Breakout v3 | GPIO14/15 | UART0 |
+| 3W LED | GPIO17 → 2N2222 | GPIO/PWM |
+| Speaker | GPIO18 | GPIO |
+
+### Headband Module — Key Connections
+
+| Component | ESP32-C3 Pin | Protocol |
+|---|---|---|
+| MPU6050 SDA | GPIO8 | I2C |
+| MPU6050 SCL | GPIO9 | I2C |
+| Vibration motor | GPIO4 → 2N2222 | GPIO |
+| Pi 5 (wireless) | Built-in BLE | BLE 5 |
+
+> ⚠️ The 3W LED draws ~600mA and the vibration motor draws ~80mA — both exceed ESP32/Pi GPIO limits. Always use a 2N2222 NPN transistor as a low-side switch with a 1kΩ base resistor.
+
+---
+
+## Software Setup
+
+### Dashboard (Raspberry Pi 5)
+
+**Requirements:**
+- Raspberry Pi OS Bookworm (Python 3.11)
+- OpenCV, MediaPipe, Picamera2, pyserial, pynmea2
+
+**Install dependencies:**
+```bash
+sudo apt install python3-opencv python3-picamera2 -y
+pip install mediapipe pyserial pynmea2 --break-system-packages
+```
+
+**Enable UART for GPS:**
+```bash
+sudo nano /boot/firmware/config.txt
+# Add under [all]:
+# enable_uart=1
+# dtoverlay=uart0-pi5
+sudo reboot
+```
+
+**Fix serial port permissions (permanent):**
+```bash
+sudo usermod -a -G tty $USER
+# or
+sudo nano /etc/udev/rules.d/99-serial.rules
+# Add: KERNEL=="ttyAMA0", MODE="0666"
+```
+
+**Run fatigue detection:**
+```bash
+python3 dashboard/sleepaway_detection.py
+```
+
+### Headband (ESP32-C3 Mini)
+
+**Requirements:**
+- Arduino IDE 2
+- ESP32 board package by Espressif
+- Adafruit MPU6050 library
+- Adafruit Unified Sensor library
+
+**Board settings:**
+- Board: ESP32C3 Dev Module
+- USB CDC On Boot: Enabled
+- Upload Speed: 921600
+
+**Upload sketch:**
+Open `headband/imu_calibration.ino` in Arduino IDE and upload to ESP32-C3 Mini.
+
+---
+
+## Repository Structure
+
+```
+SleepAway/
+├── dashboard/
+│   ├── sleepaway_detection.py      # Main fatigue detection (MediaPipe + EAR)
+│   └── gps_test.py                 # GPS NMEA parsing test
+├── headband/
+│   └── imu_calibration.ino         # ESP32 IMU reading + calibration
+├── hardware/
+│   └── circuit_diagrams/           # LaTeX circuit diagrams (circuitikz)
+├── docs/
+│   └── design_report/              # Progress report assets
+└── README.md
+```
+
+---
+
+## Project Timeline
+
+| Phase | Period | Status |
+|---|---|---|
+| Research & planning | March–April 2025 | ✅ Complete |
+| Component selection & procurement | April–May 2025 | ✅ Complete |
+| AI software development | May–June 2025 | ✅ Complete |
+| Hardware bring-up | June–July 2025 | 🔄 In progress |
+| PCB design (KiCad) | July–August 2025 | 🔄 In progress |
+| Vehicle testing | September 2025 | ⏳ Upcoming |
+| SECTE Innovation Exhibition | October 2025 | ⏳ Upcoming |
+
+---
+
+## Team
+
+| Name | Degree | Contributions |
+|---|---|---|
+| Rafael Zoric | Mechatronics Engineering (Hons) | Hardware bring-up, AI pipeline, CAD, PCB |
+| Thomas Castan | Electrical Engineering | Embedded systems, GPS, wireless comms, backend |
+| Michael Williams | Mechatronics Engineering | CAD, prototyping, circuit design, C/C++ |
+| Ieuan King | Electrical Engineering | Microcontroller programming, PCB design |
+| Abrar Tahmeed | Computer Engineering | Python/MATLAB, AI model training, system testing |
+
+---
+
+## Ethical & Sustainability Considerations
+
+- All image processing is **local** — no data sent to cloud
+- Camera frames are **discarded immediately** after inference
+- USB/cigarette lighter power — **no disposable batteries** in dashboard module
+- **Recyclable PLA** 3D printed enclosures
+- **Modular design** — individual components replaceable without discarding whole unit
+- Terms of use clearly state device **enhances but does not replace** safe driving
+
+---
+
+## Target Specifications
+
+| Requirement | Target |
+|---|---|
+| Detection accuracy | ≥ 90% regardless of conditions |
+| Headband battery life | > 10 hours |
+| Main module power | Standard USB-C (5V/3A) |
+| Headband weight | < 300g |
+| Alert response time | < 1 second after fatigue confirmed |
+
+---
+
+## Licence
+
+This project was developed as part of ECTE350 at the University of Wollongong.  
+© 2025 SleepAway Team — All rights reserved.
