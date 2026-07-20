@@ -4,11 +4,11 @@
 
 Adafruit_MPU6050 mpu;
 
-// ── Calibration offsets (set after calibration runs) ─────────────
+// Calibration offsets (set after calibration runs) 
 float offset_ax = 0, offset_ay = 0, offset_az = 0;
 float offset_gx = 0, offset_gy = 0, offset_gz = 0;
 
-// ── Calibration function ─────────────────────────────────────────
+//  Calibration function 
 void calibrateMPU() {
   Serial.println("Calibrating MPU6050...");
   Serial.println("Keep sensor flat and still for 5 seconds!");
@@ -45,6 +45,41 @@ void calibrateMPU() {
   Serial.print(" Y: ");              Serial.print(offset_gy);
   Serial.print(" Z: ");              Serial.println(offset_gz);
   Serial.println("----------------------------");
+}
+
+void getdata(sensors_event_t &a, sensors_event_t &g){
+  // Apply calibration offsets
+  float cal_ax = a.acceleration.x - offset_ax;
+  float cal_ay = a.acceleration.y - offset_ay;
+  float cal_az = a.acceleration.z - offset_az;
+  float cal_gx = g.gyro.x - offset_gx;
+  float cal_gy = g.gyro.y - offset_gy;
+  float cal_gz = g.gyro.z - offset_gz;
+
+  // Calculate pitch angle
+  float pitch = atan2(cal_ax,
+                sqrt(cal_ay * cal_ay + cal_az * cal_az))
+                * 180.0 / PI;
+
+  // Print calibrated accelerometer values
+  Serial.print("Acceleration X: "); Serial.print(cal_ax);
+  Serial.print(", Y: ");            Serial.print(cal_ay);
+  Serial.print(", Z: ");            Serial.print(cal_az);
+  Serial.println(" m/s^2");
+
+  // Print calibrated gyro values
+  Serial.print("Rotation X: "); Serial.print(cal_gx);
+  Serial.print(", Y: ");        Serial.print(cal_gy);
+  Serial.print(", Z: ");        Serial.print(cal_gz);
+  Serial.println(" rad/s");
+
+  // Print pitch angle
+  Serial.print("Pitch: ");
+  Serial.print(pitch);
+  Serial.println(" degrees");
+
+  Serial.println("");
+  delay(500);
 }
 
 void setup(void) {
@@ -102,36 +137,5 @@ void loop() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  // Apply calibration offsets
-  float cal_ax = a.acceleration.x - offset_ax;
-  float cal_ay = a.acceleration.y - offset_ay;
-  float cal_az = a.acceleration.z - offset_az;
-  float cal_gx = g.gyro.x - offset_gx;
-  float cal_gy = g.gyro.y - offset_gy;
-  float cal_gz = g.gyro.z - offset_gz;
-
-  // Calculate pitch angle
-  float pitch = atan2(cal_ax,
-                sqrt(cal_ay * cal_ay + cal_az * cal_az))
-                * 180.0 / PI;
-
-  // Print calibrated accelerometer values
-  Serial.print("Acceleration X: "); Serial.print(cal_ax);
-  Serial.print(", Y: ");            Serial.print(cal_ay);
-  Serial.print(", Z: ");            Serial.print(cal_az);
-  Serial.println(" m/s^2");
-
-  // Print calibrated gyro values
-  Serial.print("Rotation X: "); Serial.print(cal_gx);
-  Serial.print(", Y: ");        Serial.print(cal_gy);
-  Serial.print(", Z: ");        Serial.print(cal_gz);
-  Serial.println(" rad/s");
-
-  // Print pitch angle
-  Serial.print("Pitch: ");
-  Serial.print(pitch);
-  Serial.println(" degrees");
-
-  Serial.println("");
-  delay(500);
+  getdata(a, g);
 }
