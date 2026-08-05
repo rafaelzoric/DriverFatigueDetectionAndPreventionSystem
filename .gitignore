@@ -1,0 +1,21 @@
+# Datasets — never commit
+mrl_raw/
+dataset/
+*.zip
+
+# Large model formats — only the .tflite goes in
+*.keras
+*.h5
+*.pb
+
+# Credentials
+kaggle.json
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
