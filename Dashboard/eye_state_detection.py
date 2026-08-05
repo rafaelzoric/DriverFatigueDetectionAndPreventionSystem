@@ -30,7 +30,7 @@ except ImportError:
 # ─────────────────────────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────────────────────────
-MODEL_PATH   = "eye_state.tflite"
+MODEL_PATH = "eye_state_float16.tflite"
 IMG_SIZE     = 64          # must match training
 USE_CSI      = False       # True = XC9021 via Picamera2, False = USB webcam
 FRAME_W      = 640
