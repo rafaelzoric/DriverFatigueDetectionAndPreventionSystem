@@ -206,6 +206,12 @@ SleepAway/
 | Alert response time | < 1 second after fatigue confirmed |
 
 ---
+| Model    | Test accuracy | Size |
+|----------|---------------|------|
+| float32  | 0.9859        | ~300 KB |
+| float16  | 0.9857        | ~150 KB |
+| dynamic  | 0.9854        | ~90 KB  |
+| int8     | 0.5813        | ~50 KB  |
 
 ## Licence
 
