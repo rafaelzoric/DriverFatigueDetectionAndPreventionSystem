@@ -61,6 +61,14 @@ void getdata(sensors_event_t &a, sensors_event_t &g){
                 sqrt(cal_ay * cal_ay + cal_az * cal_az))
                 * 180.0 / PI;
 
+  float roll = atan2(cal_ay,
+                sqrt(cal_ax * cal_ax + cal_az * cal_az))
+                * 180.0 / PI;
+
+  /*float yaw = atan2(cal_az,
+                sqrt(cal_ay * cal_ay + cal_ax * cal_ax))
+                * 180.0 / PI;*/
+
   // Print calibrated accelerometer values
   Serial.print("Acceleration X: "); Serial.print(cal_ax);
   Serial.print(", Y: ");            Serial.print(cal_ay);
@@ -74,9 +82,15 @@ void getdata(sensors_event_t &a, sensors_event_t &g){
   Serial.println(" rad/s");
 
   // Print pitch angle
-  Serial.print("Pitch: ");
-  Serial.print(pitch);
+  Serial.print("Pitch Roll: ");    Serial.print(roll);
+  Serial.print(", Pitch: ");        Serial.print(pitch);
+  //Serial.print(", Yaw: ");        Serial.print(yaw);
   Serial.println(" degrees");
+
+  // Print pitch angle
+  //Serial.print("Pitch: ");
+  //Serial.print(pitch);
+  //Serial.println(" degrees");
 
   Serial.println("");
   delay(500);
